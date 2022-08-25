@@ -74,8 +74,8 @@ def correcting(sum, in_currency, out_currency ):
     # будем выбирать нужный курс. Сначала с помощью регулярного выражения поймем, из какой валюты
     # конвертируем, потом - в  какую конвертируем - и сделаем конвертацию
 
-    currencies_regexp = {'^доллар*': 'USD', '^рубл*': 'RUR'}
-    currencies_values_in_roubles = {'USD': 70, 'RUR': 1}
+    currencies_regexp = {'^доллар*': 'USD', '^рубл*': 'RUB'}
+    currencies_values_in_roubles = {'USD': 70, 'RUB': 1}
 
     # это лямбда-функция, чтобы два раза не писать одну и ту же логику для входящей и исходящей валюты
     search_currency = lambda search, dict: [value for key, value in dict.items() if re.match(key, search)]
