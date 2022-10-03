@@ -1,83 +1,46 @@
-import re
+import re     #библа для regexp
+import datetime
+import urllib.request   #библа для чтения xml
+import xml.etree.ElementTree as ET  #библа для парсинга
+from os import path    #библа определения наличия файла
+import telebot
+import socket
 
-# isaltanov: 
-# 1. Хорошим тоном является использование глобальных конфигурационных переменных,
-# которые не меняются в результате работы кода
-# 2. Регулярное выражение [а-я-А-Я] можно сократить до [A-я] - это то же самое
+
 REQUEST_REGEXP = '([0-9]+)\s+([А-я]+)\s+(в)\s+([А-я]+)'
-REQUEST_TEXT = 'Введите запрос в формате "300 долларов в рублях"'
+REQUEST_TEXT = 'Введи запрос в формате "300 долларов в рублях"'
 ERROR_TEXT = 'Запрос некорректен'
+API_TOKEN = '5610861190:AAHz2WaGlUPiyWEB4lQviG_-PHaHVdd-Oxo'
+BOT_GREETING = "Привет, я бот-конвертер валют. Я беру данные с сайта ЦБ РФ на сегодняшний день.\n\nДоступные валюты:\n\nевро\nдоллары\nрубли\nиены\nюани"
 
 def main():
+    global request
+    return check_request(request )
 
-    # isaltanov:
-    # 3. Глобальные переменные, которые меняются в коде, лучше не использовать
-    
-    # global request
-    # print('Введите запрос в формате "300 долларов в рублях"')
-    print(REQUEST_TEXT)
-    request = input()
-
-    # isaltanov:
-    # 4. Раз тут решил использовать функцию, дай ей на вход переменную request
-    
-    # check_1()
-    check_1(request)
-
-# def check_1():
-def check_1(request):
-
-    # isaltanov:
-    # 5. Лучше использовать функцию findall - она сразу тебе вернет массив из тех элементов, которые ты
-    # подошли под маски внутри скобочек ( ) и не нужно делать split
-    
-    # match= re.fullmatch(r'([0-9]+)\s+([а-я-А-Я]+)\s+(в)\s+([а-я-А-Я]+)', request) #проверка на совпадение с маской
+def check_request(request ):
     match = re.findall(REQUEST_REGEXP, request) #проверка на совпадение с маской
 
     if match:
-        # isaltanov:
-        # 6. здесь лучше сразу подготовить данные из строки, раз мы разобрали ее по элементам
         first_match = match[0]
-        sum = float(first_match[0])
+        summ = float(first_match[0])    #запись суммы искомой валюты
         in_currency = first_match[1].lower()
         out_currency = first_match[3].lower()
 
-        # isaltanov:
-        # 7. Ценность этой функции - расчет результата, а не печать на экран. Пусть она принимает на вход уже
-        # подготовленные данные из строки и возвращает результат. Дальше мы сами тут напечатаем
-
-        # correcting()
-        result = correcting(sum, in_currency, out_currency )
-        print (result)
+        result = correcting(summ, in_currency, out_currency )
+        return result
     else:
-        # print('Запрос некорректен')
         print(ERROR_TEXT )
-
-        # isaltanov:
-        # 8. Здесь уже можно вывести из условия повторный вызов main() - он используется для обоих сценариев if .. else
-        
-        # main()
     main()
 
-#def correcting():
-def correcting(sum, in_currency, out_currency ):
+def correcting(summ, in_currency, out_currency ):
+    currencies_regexp = {'^доллар*': 'USD', '^рубл*': 'RUB', '^евр*': 'EUR', '^иен*': 'JPY', '^юан*': 'CNY'}   #словарь с обозначениями валют
+    IPaddress=socket.gethostbyname(socket.gethostname())
+    currencies_values_in_roubles = {'USD': 60, 'RUB': 1, 'EUR': 50, 'JPY': 40, 'CNY': 80}         #словарь с заданными валютами
 
-    # global request
-    # request= request.split()
-    # request[0]= int(request[0])
-    # request[1]= request[1].lower()
-    # request[3]= request[3].lower()
+    if IPaddress != "127.0.0.1":
+        currencies_values_in_roubles = update_values(currencies_values_in_roubles )
 
-    # isaltanov:
-    # 9. Дальше идет лапша кода из if и else - предлагаю ее оптимизировать таким образом:
-    # мы создадим словарик слов, по которым будем понимать валюту, и словарик курсов, по которым 
-    # будем выбирать нужный курс. Сначала с помощью регулярного выражения поймем, из какой валюты
-    # конвертируем, потом - в  какую конвертируем - и сделаем конвертацию
 
-    currencies_regexp = {'^доллар*': 'USD', '^рубл*': 'RUB'}
-    currencies_values_in_roubles = {'USD': 70, 'RUB': 1}
-
-    # это лямбда-функция, чтобы два раза не писать одну и ту же логику для входящей и исходящей валюты
     search_currency = lambda search, dict: [value for key, value in dict.items() if re.match(key, search)]
     
     in_currency_id = search_currency(in_currency, currencies_regexp )
@@ -89,41 +52,83 @@ def correcting(sum, in_currency, out_currency ):
         in_currency_id = in_currency_id[0]
         out_currency_id = out_currency_id[0]
 
-    result_sum = float(sum * currencies_values_in_roubles[in_currency_id ] / currencies_values_in_roubles[out_currency_id ] )
+    result_sum = float(summ * currencies_values_in_roubles[in_currency_id ] / currencies_values_in_roubles[out_currency_id ] )
     result_sum = round(result_sum, 2 )
 
-    return result_sum 
+    return f"{result_sum:,}"
 
-    # if re.fullmatch(r'(доллар)([а-я]*)', request[1]):  #проверки на валюту
-    #    request[1]= 'доллар'
-    # elif re.fullmatch(r'(рубл)([а-я]*)', request[1]):
-    #    request[1]= 'рубл'
-    # if re.fullmatch(r'(доллар)([а-я]*)', request[3]):
-    #    request[3]= 'доллар'
-    # elif re.fullmatch(r'(рубл)([а-я]*)', request[3]):
-    #    request[3]= 'рубл'
-    # if request[1]== 'доллар' and request[3]== 'рубл':
-    #    summ= int(request[0])*70
-    # else:
-    #    summ= int(request[0])/70
-    # if request[0]== 0 and request[3]== 'рубл':
-    #    print('0 рублей')
-    # elif request[0]== 0 and request[3]== 'доллар':
-    #    print('0 долларов')
-    # elif int(request[0]%10)== 1:
-    #    if request[3]== 'рубл':
-    #        print(summ, 'рубль')
-    #    else:
-    #        print(summ, 'доллар')
-    # elif re.fullmatch(r'([0-9]*)([2-4])', str(int(summ))):
-    #    if request[3]== 'рубл':
-    #        print(summ, 'рубля')
-    #    else:
-    #        print(summ, 'доллара')
-    # elif re.fullmatch(r'([0-9]*)([5-9-0])', str(int(summ))):
-    #    if request[3]== 'рубл':
-    #        print(summ, 'рублей')
-    #    else:
-    #        print(summ, 'долларов')
-    # main()
-main()
+def parse_cbrf(url):     #чтение и декодирование xml файла
+    req = urllib.request.Request(url=url )
+    response = ''
+    with urllib.request.urlopen(req) as f:
+        response += f.read().decode('windows-1251')
+    return response     #возврат готового объекта
+
+def read_cache(cache_filename):      #считывание файла кэша
+        cache_file = open(cache_filename, 'r')
+        cache_content = cache_file.read()
+        cache_file.close()
+        return cache_content
+
+def update_cache(cache_filename, cache_content):   #редактирование кэша
+        cache_file = open(cache_filename, 'w')
+        cache_file.write(cache_content )
+        cache_file.close()
+
+def check_cache(cache_filename, check_date ):
+    if not path.exists(cache_filename ):    #проверка на наличие кэша
+        cache_file = open(cache_filename, 'w')
+        cache_file.close()
+        return False
+    else:
+        cache_content = read_cache(cache_filename )
+        cache_root = ET.fromstring(cache_content )
+        if cache_root.attrib['Date'] != check_date:  #проверка на совпадение дат
+            return False
+    return True
+
+
+    
+def update_values(currencies ):
+
+    URL = "http://www.cbr.ru/scripts/XML_daily.asp?date_req="
+    TODAY = datetime.date.today().strftime('%d/%m/%Y')    #получение даты в нужном формате
+    URL += TODAY   #склейка для получения ссылки
+    TODAY_XML = datetime.date.today().strftime('%d.%m.%Y')
+    FILENAME = 'cbrf.xml'    #создание файла с xml данными
+    
+    response = ''
+    if check_cache(FILENAME, TODAY_XML ):
+        response = read_cache(FILENAME )
+    else:
+        response = parse_cbrf(URL )
+        update_cache(FILENAME, response )
+
+    root = ET.fromstring(response)   #парсинг корневого элемента xml 
+
+    for valute in root.iter('Valute'):    #перебор подкоренных элементов
+        charcode = valute.find('CharCode').text
+        value = valute.find('Value').text
+        value = value.replace(',', '.')
+        value = float(value)
+        if charcode in currencies:
+            currencies[charcode] = value
+    
+    return currencies
+
+BOT = telebot.TeleBot(API_TOKEN )
+
+@BOT.message_handler(commands = ['start' ] )
+
+def start_message(message ):
+    BOT.send_message(message.chat.id, BOT_GREETING)
+    BOT.send_message(message.chat.id, REQUEST_TEXT)
+
+@BOT.message_handler(func = lambda message: True )
+
+def give_result(message ):
+    global request
+    request = message.text
+    BOT.reply_to(message, main() )
+
+BOT.infinity_polling()
