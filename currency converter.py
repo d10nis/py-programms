@@ -10,7 +10,7 @@ import socket
 REQUEST_REGEXP = '([0-9]+)\s+([А-я]+)\s+(в)\s+([А-я]+)'
 REQUEST_TEXT = 'Введи запрос в формате "300 долларов в рублях"'
 ERROR_TEXT = 'Запрос некорректен'
-API_TOKEN = '5610861190:AAHz2WaGlUPiyWEB4lQviG_-PHaHVdd-Oxo'
+API_TOKEN = 'YOUR TOKEN'
 BOT_GREETING = "Привет, я бот-конвертер валют. Я беру данные с сайта ЦБ РФ на сегодняшний день.\n\nДоступные валюты:\n\nевро\nдоллары\nрубли\nиены\nюани"
 
 def main():
